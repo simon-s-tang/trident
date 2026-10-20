@@ -1,0 +1,261 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+description: >
+  TRIDENT configuration: config/config.yaml with a dataset config layered on
+  top. Unknown keys are rejected, so a typo in an override (e.g. "extar") fails
+  here instead of being silently ignored.
+type: object
+additionalProperties: false
+
+properties:
+
+  ## --- Dataset settings (no defaults; set in config/<dataset>/config.yaml) ---
+
+  genome:
+    type: string
+    description: "Reference genome FASTA"
+  gtf:
+    type: string
+    description: "Gene annotation GTF, used by STAR, featureCounts and htseq"
+  star_index_dir:
+    type: string
+    description: "STAR index folder; built by rule star_index if it does not exist"
+  samples:
+    type: string
+    description: "Sample sheet (workflow/schemas/samples.schema.yaml)"
+  units:
+    type: string
+    description: "Units sheet, one row per sample and lane (workflow/schemas/units.schema.yaml)"
+  read_length:
+    type: integer
+    minimum: 1
+    description: "Read length; the STAR index uses sjdbOverhang = read_length - 1"
+  strandedness:
+    enum: [reverse, forward, unstranded]
+    description: "Library strandedness; translated into each tool's flag in workflow/rules/common.smk"
+  adapters:
+    type: object
+    additionalProperties: false
+    properties:
+      r1: {type: string}
+      r2: {type: string}
+    required: [r1, r2]
+    description: "Adapter sequences given to fastp for read 1 and read 2"
+  run_trimming:
+    type: boolean
+    description: "Map the fastp-trimmed reads (true) or the raw reads (false)"
+  apa_reference:
+    type: object
+    additionalProperties: false
+    properties:
+      kallisto_index: {type: string}
+      gtf_focus: {type: string}
+      gtf_no_focus: {type: string}
+    required: [kallisto_index, gtf_focus, gtf_no_focus]
+    description: "3' UTR reference for the APA module (required when modules.apa is true)"
+
+  ## --- Tool settings and resources (defaults in config/config.yaml) ---
+
+  modules:
+    type: object
+    additionalProperties: false
+    properties:
+      expression: {type: boolean}
+      splicing: {type: boolean}
+      apa: {type: boolean}
+    required: [expression, splicing, apa]
+    description: "Which analyses `rule all` builds"
+
+  fastp:
+    type: object
+    additionalProperties: false
+    properties:
+      extra: {type: string}
+      threads: {type: integer, minimum: 1}
+      mem_mb: {type: integer, minimum: 1}
+      runtime: {type: integer, minimum: 1}
+    required: [extra, threads, mem_mb, runtime]
+
+  fastqc:
+    type: object
+    additionalProperties: false
+    properties:
+      threads: {type: integer, minimum: 1}
+      mem_mb: {type: integer, minimum: 1}
+      runtime: {type: integer, minimum: 1}
+    required: [threads, mem_mb, runtime]
+
+  star_index:
+    type: object
+    additionalProperties: false
+    properties:
+      extra: {type: string}
+      threads: {type: integer, minimum: 1}
+      mem_mb: {type: integer, minimum: 1}
+      runtime: {type: integer, minimum: 1}
+    required: [extra, threads, mem_mb, runtime]
+
+  star_mapping:
+    type: object
+    additionalProperties: false
+    properties:
+      out_sam_unmapped: {enum: [None, Within, "Within KeepPairs"]}
+      limit_sjdb_insert_nsj: {type: integer, minimum: 1}
+      extra_pass1: {type: string}
+      extra_pass2: {type: string}
+      threads: {type: integer, minimum: 1}
+      mem_mb: {type: integer, minimum: 1}
+      retries: {type: integer, minimum: 0}
+      runtime: {type: integer, minimum: 1}
+    required: [out_sam_unmapped, limit_sjdb_insert_nsj, extra_pass1, extra_pass2, threads, mem_mb, retries, runtime]
+
+  sj_merge:
+    type: object
+    additionalProperties: false
+    properties:
+      min_unique_reads: {type: integer, minimum: 0}
+      mem_mb: {type: integer, minimum: 1}
+      runtime: {type: integer, minimum: 1}
+    required: [min_unique_reads, mem_mb, runtime]
+
+  bam_sort:
+    type: object
+    additionalProperties: false
+    properties:
+      threads: {type: integer, minimum: 1}
+      mem_mb: {type: integer, minimum: 1}
+      runtime: {type: integer, minimum: 1}
+    required: [threads, mem_mb, runtime]
+
+  featurecounts:
+    type: object
+    additionalProperties: false
+    properties:
+      feature_type: {type: string}
+      attribute: {type: string}
+      extra: {type: string}
+      threads: {type: integer, minimum: 1}
+      mem_mb: {type: integer, minimum: 1}
+      runtime: {type: integer, minimum: 1}
+    required: [feature_type, attribute, extra, threads, mem_mb, runtime]
+
+  htseq_count:
+    type: object
+    additionalProperties: false
+    properties:
+      feature_type: {type: string}
+      attribute: {type: string}
+      mode: {enum: [union, intersection-strict, intersection-nonempty]}
+      nonunique: {enum: [none, all, fraction, random]}
+      extra: {type: string}
+      mem_mb: {type: integer, minimum: 1}
+      runtime: {type: integer, minimum: 1}
+    required: [feature_type, attribute, mode, nonunique, extra, mem_mb, runtime]
+
+  multiqc:
+    type: object
+    additionalProperties: false
+    properties:
+      extra: {type: string}
+      mem_mb: {type: integer, minimum: 1}
+      runtime: {type: integer, minimum: 1}
+    required: [extra, mem_mb, runtime]
+
+  rmats:
+    type: object
+    additionalProperties: false
+    properties:
+      options: {type: string}
+    required: [options]
+
+  rmats_prep:
+    type: object
+    additionalProperties: false
+    properties:
+      threads: {type: integer, minimum: 1}
+      mem_mb: {type: integer, minimum: 1}
+      runtime: {type: integer, minimum: 1}
+    required: [threads, mem_mb, runtime]
+
+  rmats_post:
+    type: object
+    additionalProperties: false
+    properties:
+      extra: {type: string}
+      threads: {type: integer, minimum: 1}
+      mem_mb: {type: integer, minimum: 1}
+      runtime: {type: integer, minimum: 1}
+    required: [extra, threads, mem_mb, runtime]
+
+  kallisto_quant:
+    type: object
+    additionalProperties: false
+    properties:
+      extra: {type: string}
+      threads: {type: integer, minimum: 1}
+      mem_mb: {type: integer, minimum: 1}
+      runtime: {type: integer, minimum: 1}
+    required: [extra, threads, mem_mb, runtime]
+
+  apa_gene_list:
+    type: object
+    additionalProperties: false
+    properties:
+      counts: {enum: [featurecounts, htseq]}
+      min_mean: {type: number, minimum: 0}
+      mem_mb: {type: integer, minimum: 1}
+      runtime: {type: integer, minimum: 1}
+    required: [counts, min_mean, mem_mb, runtime]
+
+  apa_quantify:
+    type: object
+    additionalProperties: false
+    properties:
+      group_column: {type: string}
+      focus_nt: {type: integer, minimum: 1}
+      minimal_required_length: {type: integer, minimum: 0}
+      quantile_threshold: {type: number, minimum: 0, maximum: 1}
+      background_quantile: {type: boolean}
+      pct_in_treatment: {type: number, minimum: 0, maximum: 1}
+      quantile_normalization: {type: boolean}
+      figures_extension: {type: string}
+      mem_mb: {type: integer, minimum: 1}
+      runtime: {type: integer, minimum: 1}
+    required: [group_column, focus_nt, minimal_required_length, quantile_threshold,
+               background_quantile, pct_in_treatment, quantile_normalization,
+               figures_extension, mem_mb, runtime]
+
+## The APA module needs its 3' UTR reference.
+if:
+  properties:
+    modules:
+      properties:
+        apa: {const: true}
+then:
+  required: [apa_reference]
+
+required:
+  - genome
+  - gtf
+  - star_index_dir
+  - samples
+  - units
+  - read_length
+  - strandedness
+  - adapters
+  - run_trimming
+  - modules
+  - fastp
+  - fastqc
+  - star_index
+  - star_mapping
+  - sj_merge
+  - bam_sort
+  - featurecounts
+  - htseq_count
+  - multiqc
+  - rmats
+  - rmats_prep
+  - rmats_post
+  - kallisto_quant
+  - apa_gene_list
+  - apa_quantify

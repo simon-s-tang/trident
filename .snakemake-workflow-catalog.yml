@@ -1,0 +1,9 @@
+usage:
+  mandatory-flags:
+    desc: >
+      Give the dataset config with --configfile and a run folder with
+      --directory; see config/README.md.
+    flags: --configfile config/<dataset>/config.yaml --directory <run folder>
+  software-stack-deployment:
+    conda: true
+  report: true

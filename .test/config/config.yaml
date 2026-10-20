@@ -1,0 +1,32 @@
+## Test dataset: a 2 Mb slice of GRCh38 chr12 with its GENCODE v49 genes and
+## 3' UTR reference, and simulated reads (see .test/make_test_data.py).
+## Run from the pipeline folder:
+##   snakemake --directory .test --configfile .test/config/config.yaml --cores 4
+## Paths are relative to .test, the run folder.
+
+genome: data/ref/genome.fa
+gtf: data/ref/annotation.gtf
+star_index_dir: resources/star_index
+
+apa_reference:
+  kallisto_index: data/ref/utr_windows.idx
+  gtf_focus: data/ref/utr_windows.gtf
+  gtf_no_focus: data/ref/utr_isoforms.gtf
+
+samples: config/samples.tsv
+units: config/units.tsv
+
+read_length: 75
+strandedness: reverse
+adapters:
+  r1: AGATCGGAAGAGCACACGTCTGAACTCCAGTCA
+  r2: AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT
+run_trimming: true
+
+## A 2 Mb genome needs a smaller suffix-array index than STAR's default
+star_index:
+  extra: "--genomeSAindexNbases 10"
+
+## Few isoforms and samples: keep an isoform expressed in half of a group
+apa_quantify:
+  pct_in_treatment: 0.5

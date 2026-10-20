@@ -1,0 +1,15 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+
+description: >
+  A row of samples.tsv, one per biological sample. Further columns (other
+  metadata) are allowed and ignored by the pipeline.
+properties:
+  sample_name:
+    type: string
+    description: sample name/identifier; must match sample_name in units.tsv
+  condition:
+    type: string
+    description: Optional. The group the sample belongs to, e.g. treated.
+
+required:
+  - sample_name

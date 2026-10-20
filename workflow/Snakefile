@@ -1,0 +1,50 @@
+# TRIDENT: bulk RNA-seq quantification (gene expression, splicing, APA).
+# Run from the pipeline folder with:
+#   snakemake --configfile config/<dataset>/config.yaml --directory <run folder>
+
+import os
+import re
+import sys
+
+import pandas as pd
+from snakemake.utils import min_version, validate
+
+min_version("9.0")
+
+
+# Defaults for every setting; the dataset config overrides them
+configfile: os.path.join(workflow.basedir, "../config/config.yaml")
+
+
+report: "report/workflow.rst"
+
+
+include: "rules/common.smk"
+
+
+# Final outputs of every module switched on in config `modules`
+rule all:
+    default_target: True
+    input:
+        all_targets,
+
+
+# Modules
+include: "rules/preprocess.smk"
+include: "rules/align.smk"
+include: "rules/expression.smk"
+include: "rules/splicing.smk"
+
+
+# The APA module needs apa_reference, so it is read only when switched on
+if config["modules"]["apa"]:
+
+    include: "rules/apa.smk"
+
+
+onsuccess:
+    print("Success! The Snakemake workflow is completed.")
+
+
+onerror:
+    print("Error! The Snakemake workflow aborted.")

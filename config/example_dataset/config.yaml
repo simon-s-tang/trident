@@ -1,0 +1,57 @@
+## =============================================================================
+## Example dataset config. Copy this folder to config/<dataset>/ and set every
+## value. Run with:
+##   snakemake --configfile config/<dataset>/config.yaml --directory <run folder> ...
+##
+## Only dataset-specific settings belong here; every tool option has a default
+## in config/config.yaml, and any of them can be overridden here.
+## Use absolute paths: relative paths are read from the run folder.
+## =============================================================================
+
+### Reference genome and gene annotation (e.g. GENCODE GRCh38 primary assembly)
+genome: /path/to/GRCh38.primary_assembly.genome.fa
+gtf: /path/to/gencode.annotation.gtf
+
+### STAR index. Built here on the first run if it does not exist (~1-2 h,
+### ~180 GB RAM for human). It depends on the genome, the GTF and the read
+### length, so datasets sharing all three can share it.
+star_index_dir: /path/to/reference/star_index_gencode_overhang149
+
+### 3' UTR reference for the APA module (only needed if modules.apa is true;
+### see "3′ UTR reference" in the README for what it is and how to build one):
+###   kallisto_index  kallisto index (kallisto 0.51) of the window sequences
+###   gtf_focus       the windows: the 301 nt ending at each polyA site (GTF)
+###   gtf_no_focus    the full-length 3' UTR isoforms they were cut from (GTF)
+apa_reference:
+  kallisto_index: /path/to/3utr_windows.idx
+  gtf_focus: /path/to/3utr_windows.gtf
+  gtf_no_focus: /path/to/3utr_isoforms_full.gtf
+
+### Sample sheets (see README):
+###   samples: sample_name, plus optional columns such as condition
+###   units:   sample_name, unit_name, fq1, fq2 (one row per sample and lane)
+### scripts/make_sample_sheets.py builds both from a FASTQ folder.
+samples: /path/to/TRIDENT/config/example_dataset/samples.tsv
+units: /path/to/TRIDENT/config/example_dataset/units.tsv
+
+### Read length (sets the STAR index's sjdbOverhang = read_length - 1)
+read_length: 150
+
+### Library strandedness: reverse (e.g. dUTP / TruSeq stranded), forward or
+### unstranded. Translated into each tool's own flag.
+strandedness: reverse
+
+### Adapter sequences for fastp. Nextera: CTGTCTCTTATACACATCT;
+### TruSeq: AGATCGGAAGAGCACACGTCTGAACTCCAGTCA (R1) / AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT (R2)
+adapters:
+  r1: CTGTCTCTTATACACATCT
+  r2: CTGTCTCTTATACACATCT
+
+### true: align and quantify the fastp-trimmed reads; false: the raw reads
+run_trimming: true
+
+### Optional overrides of config/config.yaml, e.g.
+# modules:
+#   apa: false
+# htseq_count:
+#   mode: union

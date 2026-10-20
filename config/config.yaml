@@ -1,0 +1,211 @@
+## =============================================================================
+## TRIDENT -- default tool settings
+##
+## Every tool option and resource the pipeline uses is set here, so nothing in
+## workflow/rules/ needs editing to change how a tool runs.
+##
+## The Snakefile always loads this file first. The dataset config given with
+##   --configfile config/<dataset>/config.yaml
+## is layered on top of it and can override any key below, at any depth -- e.g.
+## a dataset config containing
+##   htseq_count:
+##     mode: union
+## changes only that one value and keeps every other htseq_count default.
+##
+## Dataset-specific settings (reference files, sample sheets, read length,
+## strandedness, adapters) deliberately have NO defaults here: they must be
+## written in each dataset config, so a new dataset can never silently inherit
+## another dataset's values. config/example_dataset/config.yaml is a complete example.
+##
+## Each rule's threads, memory (mem_mb, MB) and run time (runtime, minutes) are
+## set here too. Cluster executors (SLURM, LSF, ...) request them for each job.
+## For one run, override them on the command line instead, e.g.
+##   --set-threads star_pass2=16 --set-resources star_pass2:mem_mb=64000
+## =============================================================================
+
+
+## -----------------------------------------------------------------------------
+## Which analyses `rule all` builds. Preprocessing and alignment run whenever an
+## analysis needs them. Switch one off in a dataset config with e.g.
+##   modules:
+##     splicing: false
+## -----------------------------------------------------------------------------
+modules:
+  expression: true    # rules/expression.smk: gene counts + the MultiQC report
+  splicing: true      # rules/splicing.smk: rMATS splicing quantification
+  apa: true           # rules/apa.smk: 3' UTR isoform quantification (kallisto + apatools);
+                      #   needs apa_reference in the dataset config
+
+
+## -----------------------------------------------------------------------------
+## rules/preprocess.smk
+## -----------------------------------------------------------------------------
+
+fastp:
+  # Options passed after the adapter sequences (`adapters` in the dataset config).
+  # --detect_adapter_for_pe: fastp does not detect adapters in paired-end data
+  #   by default; keep this unless you are sure of your adapter sequences.
+  # --trim_poly_g: trims polyG tails from two-colour (NovaSeq/NextSeq) chemistry.
+  # --length_required 36: drops reads shorter than 36 nt after trimming
+  #   (e.g. adapter dimers).
+  # Quality filtering is left at fastp's defaults.
+  extra: "--detect_adapter_for_pe --trim_poly_g --length_required 36"
+  threads: 8
+  mem_mb: 8000
+  runtime: 720
+
+fastqc:
+  # Used by both fastqc_raw (raw reads) and fastqc_trimmed (fastp output).
+  threads: 2
+  mem_mb: 10000
+  runtime: 1440
+
+
+## -----------------------------------------------------------------------------
+## rules/align.smk
+## -----------------------------------------------------------------------------
+
+star_index:
+  # --sjdbOverhang is not set here: it is read_length - 1, from the dataset config.
+  extra: ""
+  threads: 12
+  # A human genome with a GENCODE comprehensive GTF needs ~150-180 GB.
+  mem_mb: 180000
+  runtime: 1440
+
+star_mapping:
+  # Shared by star_pass1 and star_pass2.
+  # Pass 2 only. --outSAMunmapped: Within keeps unmapped reads in the BAM.
+  out_sam_unmapped: Within
+  # Pass 2 only. --limitSjdbInsertNsj: room for the pooled pass-1 junctions;
+  # raised from STAR's default (1000000) for large annotations.
+  limit_sjdb_insert_nsj: 1200000
+  # Any further STAR options, per pass.
+  extra_pass1: ""
+  extra_pass2: ""
+  threads: 8
+  # mem_mb is a BASE value: each retry multiplies it by the attempt number
+  # (48 GB, then 96, 144, 192 GB with 3 retries), so an out-of-memory STAR job
+  # is resubmitted bigger instead of failing.
+  mem_mb: 48000
+  retries: 3
+  runtime: 1440
+
+sj_merge:
+  # A pass-1 junction is kept for pass 2 if, in at least one sample, at least
+  # this many uniquely mapped reads support it (column 7 of SJ.out.tab).
+  min_unique_reads: 3
+  mem_mb: 10000
+  runtime: 1440
+
+
+## -----------------------------------------------------------------------------
+## rules/expression.smk
+## -----------------------------------------------------------------------------
+
+bam_sort:
+  # samtools sort -n: the name-sorted BAMs that featureCounts and htseq-count read
+  threads: 8
+  mem_mb: 20000
+  runtime: 1440
+
+featurecounts:
+  # -s (strand) comes from `strandedness` in the dataset config. -p and
+  # --countReadPairs are fixed in the rule: they are what make featureCounts
+  # count fragments rather than mates (subread >= 2.0.2).
+  feature_type: exon      # -t
+  attribute: gene_id      # -g
+  extra: ""               # any further featureCounts options
+  threads: 8
+  # featureCounts holds the annotation in memory.
+  mem_mb: 16000
+  runtime: 4320
+
+htseq_count:
+  # -s (strand) comes from `strandedness` in the dataset config. -f bam -r name
+  # are fixed in the rule: its input is the name-sorted BAM.
+  feature_type: exon            # -t
+  attribute: gene_id            # -i
+  mode: intersection-strict     # -m
+  nonunique: all                # --nonunique
+  extra: "--additional-attr=gene_name"
+  mem_mb: 10000
+  runtime: 1440
+
+multiqc:
+  extra: ""                     # any further MultiQC options
+  mem_mb: 10000
+  runtime: 1440
+
+
+## -----------------------------------------------------------------------------
+## rules/splicing.smk
+## -----------------------------------------------------------------------------
+
+rmats:
+  # Options given to BOTH rMATS steps (prep and post), which must agree.
+  # --readLength and --libType are not set here: they come from read_length and
+  # strandedness in the dataset config.
+  #
+  # Both flags below are needed because rMATS reads the shared pass-2 BAMs:
+  # --variable-read-length: fastp trimmed some reads below read_length; without
+  #   this rMATS drops every read that is not exactly read_length long.
+  # --allow-clipping: STAR (align.smk) soft-clips read ends; without this rMATS
+  #   drops every clipped read.
+  # In testing, rMATS used ~85% of alignments with both flags and ~10% without.
+  options: "--variable-read-length --allow-clipping"
+
+rmats_prep:
+  threads: 1          # one BAM per job; rMATS parallelises prep over BAMs
+  mem_mb: 10000
+  runtime: 720
+
+rmats_post:
+  # --individual-counts: per-sample inclusion and skipping counts for every
+  #   event (individualCounts.*.txt), alongside the per-sample PSI.
+  # --statoff is fixed in the rule: this module quantifies, it does not test.
+  extra: "--individual-counts"
+  threads: 8
+  mem_mb: 32000
+  runtime: 1440
+
+
+## -----------------------------------------------------------------------------
+## rules/apa.smk
+## -----------------------------------------------------------------------------
+
+kallisto_quant:
+  # The strand flag (--rf-stranded / --fr-stranded) comes from strandedness in
+  # the dataset config; the index from apa_reference.kallisto_index.
+  extra: ""                     # any further kallisto quant options
+  threads: 8
+  mem_mb: 8000
+  runtime: 720
+
+apa_gene_list:
+  # Which expression counts decide the reliably expressed genes: featurecounts
+  # or htseq (they count differently, so the lists differ slightly).
+  counts: featurecounts
+  # Keep a gene if its mean count per sample, over all samples, is above this.
+  # Genes of the GTF that share a symbol are summed first.
+  min_mean: 1
+  mem_mb: 8000
+  runtime: 120
+
+apa_quantify:
+  # The samples.tsv column whose values are apatools' groups ("treatments").
+  # There is no test: the groups only matter for pct_in_treatment below.
+  group_column: condition
+  # Correction of isoforms annotated shorter than the quantified window:
+  focus_nt: 300                 # length of the quantified 3' UTR windows
+  minimal_required_length: 100
+  # Per-sample expression threshold, from a Gaussian mixture on log counts:
+  quantile_threshold: 0.9
+  background_quantile: true
+  # Keep an isoform if it is above threshold in at least this fraction of the
+  # samples of at least one group.
+  pct_in_treatment: 0.7
+  quantile_normalization: false
+  figures_extension: png
+  mem_mb: 16000
+  runtime: 240

@@ -1,0 +1,5 @@
+sample_name	unit_name	fq1	fq2
+sampleA1	L001	/path/to/fastq/sampleA1_L001_R1.fastq.gz	/path/to/fastq/sampleA1_L001_R2.fastq.gz
+sampleA2	L001	/path/to/fastq/sampleA2_L001_R1.fastq.gz	/path/to/fastq/sampleA2_L001_R2.fastq.gz
+sampleB1	L001	/path/to/fastq/sampleB1_L001_R1.fastq.gz	/path/to/fastq/sampleB1_L001_R2.fastq.gz
+sampleB2	L001	/path/to/fastq/sampleB2_L001_R1.fastq.gz	/path/to/fastq/sampleB2_L001_R2.fastq.gz

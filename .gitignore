@@ -1,0 +1,10 @@
+results/
+resources/
+logs/
+benchmarks/
+.snakemake/
+__pycache__/
+*.pyc
+report.zip
+config/*/
+!config/example_dataset/
