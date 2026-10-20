@@ -47,7 +47,7 @@ properties:
     type: object
     additionalProperties: false
     properties:
-      kallisto_index: {type: string}
+      kallisto_index: {type: string, description: "kallisto index of the windows; built from gtf_focus and the genome if it does not exist"}
       gtf_focus: {type: string}
       gtf_no_focus: {type: string}
     required: [kallisto_index, gtf_focus, gtf_no_focus]
@@ -186,6 +186,16 @@ properties:
       runtime: {type: integer, minimum: 1}
     required: [extra, threads, mem_mb, runtime]
 
+  kallisto_index:
+    type: object
+    additionalProperties: false
+    properties:
+      extra: {type: string}
+      threads: {type: integer, minimum: 1}
+      mem_mb: {type: integer, minimum: 1}
+      runtime: {type: integer, minimum: 1}
+    required: [extra, threads, mem_mb, runtime]
+
   kallisto_quant:
     type: object
     additionalProperties: false
@@ -256,6 +266,7 @@ required:
   - rmats
   - rmats_prep
   - rmats_post
+  - kallisto_index
   - kallisto_quant
   - apa_gene_list
   - apa_quantify

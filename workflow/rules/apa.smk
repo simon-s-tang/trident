@@ -1,6 +1,34 @@
 # 3' UTR isoform (APA) quantification: kallisto + apatools (no statistical test)
 
 
+# kallisto index of the 3' UTR windows; built only if it does not exist
+rule kallisto_index:
+    input:
+        genome=ancient(config["genome"]),
+        gtf_focus=ancient(config["apa_reference"]["gtf_focus"]),
+    output:
+        index=config["apa_reference"]["kallisto_index"],
+        fasta=temp(f"{apa_dir}/utr_windows.fa"),
+    log:
+        "logs/apa/kallisto_index.log",
+    benchmark:
+        "benchmarks/apa/kallisto_index.txt"
+    conda:
+        "../envs/trident.yaml"
+    threads: config["kallisto_index"]["threads"]
+    resources:
+        mem_mb=config["kallisto_index"]["mem_mb"],
+        runtime=config["kallisto_index"]["runtime"],
+    params:
+        script=os.path.join(workflow.basedir, "scripts", "utr_windows_fasta.py"),
+        extra=config["kallisto_index"]["extra"],
+    shell:
+        "(python {params.script} --genome {input.genome} --gtf {input.gtf_focus} "
+        "--out {output.fasta} && "
+        "kallisto index -i {output.index} -t {threads} {params.extra} {output.fasta}) "
+        "> {log} 2>&1"
+
+
 # kallisto, per sample, on the same reads STAR maps
 rule kallisto_quant:
     input:

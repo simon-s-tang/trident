@@ -73,9 +73,12 @@ Standard annotations such as GENCODE don't list a gene's alternative
 polyadenylation (PA) sites as separate 3′ UTR isoforms, so the APA module needs
 its own reference of **tandem 3′ UTR isoforms**: one isoform per PA site, all
 sharing the same 3′ UTR start. A gene's shortest isoform is its *proximal* one;
-the longer ones are *distal*. For details, see
-https://github.com/idiap/apatools and the test data. Without such a reference,
-set `modules: {apa: false}`.
+the longer ones are *distal*. Give two GTFs in the dataset config:
+`gtf_no_focus`, the isoforms, and `gtf_focus`, the windows that are counted
+(the last 300 nt before each PA site). TRIDENT builds the kallisto index of the
+windows from `gtf_focus` and the genome if `kallisto_index` does not exist yet.
+For details, see https://github.com/idiap/apatools and the test data. Without
+such a reference, set `modules: {apa: false}`.
 
 ## Running on a cluster
 

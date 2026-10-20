@@ -9,7 +9,7 @@ gtf: data/ref/annotation.gtf
 star_index_dir: resources/star_index
 
 apa_reference:
-  kallisto_index: data/ref/utr_windows.idx
+  kallisto_index: resources/utr_windows.idx     # built by the pipeline
   gtf_focus: data/ref/utr_windows.gtf
   gtf_no_focus: data/ref/utr_isoforms.gtf
 

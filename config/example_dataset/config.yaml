@@ -19,11 +19,12 @@ star_index_dir: /path/to/reference/star_index_gencode_overhang149
 
 ### 3' UTR reference for the APA module (only needed if modules.apa is true;
 ### see "3′ UTR reference" in the README for what it is and how to build one):
-###   kallisto_index  kallisto index (kallisto 0.51) of the window sequences
+###   kallisto_index  kallisto index (kallisto 0.51) of the window sequences;
+###                   built here from gtf_focus and the genome if it does not exist
 ###   gtf_focus       the windows: the 301 nt ending at each polyA site (GTF)
 ###   gtf_no_focus    the full-length 3' UTR isoforms they were cut from (GTF)
 apa_reference:
-  kallisto_index: /path/to/3utr_windows.idx
+  kallisto_index: /path/to/reference/3utr_windows.idx
   gtf_focus: /path/to/3utr_windows.gtf
   gtf_no_focus: /path/to/3utr_isoforms_full.gtf
 

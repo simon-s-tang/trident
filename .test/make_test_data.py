@@ -3,7 +3,8 @@ Build the small test dataset in .test/data from real reference files.
 
 The reference is real: a slice of the GRCh38 genome, the GENCODE annotation of
 the genes that lie fully inside it, and the matching part of the 3' UTR
-reference (isoforms, windows and their kallisto index). The reads are
+reference (isoforms and windows; the pipeline builds their kallisto index).
+The reads are
 simulated from those genes, so the data can be shared and the expected
 signal is known:
 
@@ -14,7 +15,7 @@ signal is known:
   samples for a third of the multi-isoform genes);
 - a few percent of short fragments carry adapter read-through, for fastp.
 
-Run it with the trident environment (it needs pysam, numpy and kallisto):
+Run it with the trident environment (it needs pysam and numpy):
 
     python .test/make_test_data.py \
         --genome GRCh38.primary_assembly.genome.fa \
@@ -26,7 +27,6 @@ import argparse
 import gzip
 import os
 import re
-import subprocess
 
 import numpy as np
 import pysam
@@ -197,15 +197,6 @@ def main():
     isoforms = [f for f in isoforms if attribute(f[8], "transcript_id") in window_ids]
     write_gtf(os.path.join(ref_dir, "utr_isoforms.gtf"), isoforms)
     write_gtf(os.path.join(ref_dir, "utr_windows.gtf"), windows)
-    windows_fa = os.path.join(ref_dir, "utr_windows.fa")
-    with open(windows_fa, "w") as out:
-        for fields in windows:
-            out.write(f">{attribute(fields[8], 'transcript_id')}\n{interval_seq(genome, fields)}\n")
-    subprocess.run(
-        ["kallisto", "index", "-i", os.path.join(ref_dir, "utr_windows.idx"), windows_fa],
-        check=True,
-    )
-    os.remove(windows_fa)
 
     # Molecules: annotated transcripts, and 3' UTR isoforms (proximal first)
     by_gene = transcripts(annotation, genome)
