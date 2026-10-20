@@ -82,30 +82,57 @@ such a reference, set `modules: {apa: false}`.
 
 ## Running on a cluster
 
-TRIDENT does not depend on a scheduler: each rule's threads, `mem_mb` and
-`runtime` become job requests through a Snakemake
-[executor plugin](https://snakemake.github.io/snakemake-plugin-catalog/).
-For SLURM:
+TRIDENT does not depend on a scheduler: a Snakemake
+[executor plugin](https://snakemake.github.io/snakemake-plugin-catalog/)
+submits its jobs to your cluster. For SLURM, install the plugin into the
+environment:
 
 ```bash
 conda install -n trident -c bioconda snakemake-executor-plugin-slurm
 ```
 
-then create a profile, e.g. `~/.config/snakemake/mycluster/config.yaml`:
+Then create a **profile**: a file of settings for your cluster that Snakemake
+reads at the start of a run. With it, Snakemake submits each job as soon as the
+jobs it depends on have finished, up to a maximum number at a time, and SLURM
+runs each job on a node with the cores, memory and run time it asked for. These
+come from each rule's `threads`, `mem_mb` and `runtime` in
+`config/config.yaml`; the profile adds what is specific to your cluster, such
+as the partition and account. Some clusters also limit the memory per core (for
+example 7 GB) and reject jobs that ask for more, so the profile can give those
+rules more cores, or send them to a partition with more memory per core.
+
+For example, `~/.config/snakemake/trident_profile/config.yaml`:
 
 ```yaml
-executor: slurm
-jobs: 50
-default-resources:
+executor: slurm                 # submit jobs with sbatch
+jobs: 50                        # at most 50 jobs submitted at a time
+latency-wait: 60                # seconds to wait for a job's output files to appear
+default-resources:              # for every job
   slurm_partition: <partition>
   slurm_account: <account>
+set-threads:                    # more cores where memory per core is limited, or your data requires it
+  htseq_count: 2
+  apa_quantify: 3
+  star_index: 13
+set-resources:                  # other per-rule changes
+  star_index:
+    slurm_partition: <e.g. partition with more memory per core>
 ```
 
-and add `--profile mycluster` to the commands above. Snakemake keeps running
-while the jobs run, so start it in `screen`/`tmux` or as a small batch job.
+Snakemake needs to keep running while the jobs run, so to use Snakemake's executor 
+plugin, start it in `tmux` (or `screen`) to keep it running after you disconnect. 
+Detach with `Ctrl-b d` and reattach with `tmux attach -t trident_profile`:
+
+```bash
+tmux new -s trident_profile
+conda activate trident
+snakemake -n --profile trident_profile --configfile config/my_dataset/config.yaml --directory <run folder>   # dry run
+snakemake --profile trident_profile --configfile config/my_dataset/config.yaml --directory <run folder>
+snakemake --configfile config/my_dataset/config.yaml --directory <run folder> --report report.zip
+```
+
 Other schedulers have their own plugins (LSF, HTCondor; PBS and SGE through
-`cluster-generic`). Kubernetes and cloud executors also need remote storage
-and a container image, and are untested.
+`cluster-generic`).
 
 ## Outputs
 
