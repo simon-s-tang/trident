@@ -53,6 +53,8 @@ run_trimming: true
 
 ### Optional overrides of config/config.yaml, e.g.
 # modules:
+#   expression: false
+#   splicing: false
 #   apa: false
 # htseq_count:
 #   mode: union
