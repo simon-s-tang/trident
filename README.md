@@ -53,7 +53,7 @@ snakemake --configfile config/my_dataset/config.yaml --directory <run folder> --
 2. **Align:** STAR index; STAR pass 1; junctions pooled across samples; STAR pass 2.
 3. **Expression:** featureCounts and htseq-count; one MultiQC report for the run.
 4. **Splicing:** rMATS `prep` per sample, then one `post` over all samples with `--statoff`.
-5. **APA:** kallisto on the 3′ UTR windows; reliably expressed genes from the gene counts; apatools filters the isoform counts and pairs each gene's proximal and distal isoforms.
+5. **APA:** kallisto index of the 3′ UTR windows (built if missing); kallisto on each sample; reliably expressed genes from the gene counts; apatools filters the isoform counts and pairs each gene's proximal and distal isoforms.
 
 ## Configs
 

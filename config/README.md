@@ -57,5 +57,8 @@ using a regex for the file names (`--help` shows an example).
 
 ## 3′ UTR reference (APA module)
 
-See the README for what the three `apa_reference` files contain and how to
-build them. If you don't have one, set `modules: {apa: false}`.
+`apa_reference` needs two GTFs: `gtf_no_focus` (the 3′ UTR isoforms) and
+`gtf_focus` (the windows that are counted). `kallisto_index` is the path of the
+windows' kallisto index; TRIDENT builds it there from `gtf_focus` and the
+genome if it does not exist yet. See the README for what the reference is. If
+you don't have one, set `modules: {apa: false}`.
